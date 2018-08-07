@@ -1,0 +1,77 @@
+{extend  name="base"}
+{block name="title"}新增创意{/block}
+{block name="style"}
+<link rel="stylesheet" href="/css/customManage.css">
+{/block}
+{block name="content"}
+<div class="pageName">
+    <span class="page-span">新增创意</span>
+    <hr style="background:#dde5ed;">
+    <hr style="background:#d4dce4;">
+    <hr style="background:#dde5ed;">
+</div>
+<div class="content">
+    <form class="content-search layui-form"  id="formCondition">
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">创意类型</label>
+            <div class="layui-inline">
+                <select  id="material_type">
+                    <option value="">--请选择--</option>
+                    <option value="1">图片</option>
+                    <option value="2">视频</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-inline">
+            <label class="layui-form-label">创意规格</label>
+            <div class="layui-inline">
+                <select  id="w_h">
+                    <option value="">--请选择--</option>
+                    <option value="0">200x200</option>
+                    <option value="1">300x300</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="layui-form-item layui-inline">
+            <div class="layui-inline">
+                <button type="button" class="layui-btn layui-icon add" >添加</button>
+            </div>
+        </div>
+        <br>
+        <div id="st"></div>
+
+        <br>
+        <div class="layui-form-item layui-inline" style="width: 50%">
+            <div class="layui-inline" style="margin: 0% 50%" >
+                <button type="button" class="layui-btn layui-btn-lg layui-btn-norma layui-bg-blue save" lay-submit lay-filter="formDemo" style="display:none">保存</button>
+            </div>
+        </div>
+
+        <input type="hidden" id="operateUrl" data-signature="{:url('UploadFile/signature')}" data-imgurl="{:url('UploadFile/getFileUrl')}" data-add="{:url('material/add')}" data-index="{:url('material/their',['id'=>$data.plan_id,'plan_name'=>$data.plan_name,'status'=>$data.status])}"/>
+
+        <input type="hidden" id="plan_id" value="{$plan_id}">
+    </form>
+</div>
+{/block}
+{block name="js"}
+
+
+<script src="/static/js/plupload-2.1.2/js/plupload.full.min.js"></script>
+<script src="/static/js/function.js"></script>
+<script src="/static/js/upload_function.js"></script>
+<script src="/static/js/material/add.js"></script>
+<script>
+    plan_id=$("#plan_id").val();
+    function xx(obj) {
+        $(obj).parents('.xxx').remove();
+        $(".add").css("display","block");
+        ids.pop();
+        if(ids.length >0){
+            $(".save").css("display","block");
+        }else{
+            $(".save").css("display","none");
+        }
+    }
+</script>
+{/block}

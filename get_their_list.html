@@ -1,0 +1,282 @@
+<table class="layui-table" lay-even lay-skin="nob">
+    <thead>
+    <tr id="th">
+        <th><input type="checkbox" id="btn"></th>
+        <th>创意名称</th>
+        <th>创意类型</th>
+        <th>创意规格</th>
+        <th>创意状态</th>
+        <th>预览</th>
+        <th>审核状态</th>
+        <th>创建时间</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    {volist name="list" id="vo"}
+    <tr>
+        <td value="{$vo.ID}"><input type="checkbox" value="{$vo.ID}" class="btn"></td>
+        <td>{$vo.NAME|default='--'}</td>
+        <td>
+            {if condition="$vo.MATERIAL_TYPE eq 1"}
+            图片
+            {/if}
+            {if condition="$vo.MATERIAL_TYPE eq 2"}
+            视频
+            {/if}
+        </td>
+        <td>{$vo.WIDTH}x{$vo.HEIGHT}</td>
+        <td>
+            {if condition="$vo.STATUS eq 1"}
+            启动
+            {/if}
+            {if condition="$vo.STATUS eq -2"}
+            停止
+            {/if}
+        </td>
+        <td><a type="#" style="color:#666;cursor:pointer;" onclick=preview(this,"{$vo.FILE_PATH}","{$vo.MATERIAL_TYPE}")>预览</a></td>
+        <td>
+            {if condition="$vo.AUDIT_STATUS eq 0"}
+            未审核
+            {/if}
+            {if condition="$vo.AUDIT_STATUS eq 1"}
+            通过
+            {/if}
+            {if condition="$vo.AUDIT_STATUS eq -1"}
+            拒绝
+            {/if}
+        </td>
+        <td>
+            {empty name="$vo.CREATE_TIME"}
+            --
+            {else /}
+            {$vo.CREATE_TIME|date='Y-m-d',###}
+            {/empty}
+        </td>
+        <td>
+            {if condition="$vo.AUDIT_STATUS eq 0"}
+            <a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,"{$vo.STATUS}","{$vo.AUDIT_STATUS}") class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a>
+            <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,"{$vo.STATUS}","{$vo.AUDIT_STATUS}") class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a>
+            {elseif condition="$vo.AUDIT_STATUS eq 1"/}
+            <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,"{$vo.STATUS}","{$vo.AUDIT_STATUS}") class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a>
+            {elseif condition="$vo.AUDIT_STATUS eq -1"/}
+            <a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,"{$vo.STATUS}","{$vo.AUDIT_STATUS}") class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a>
+            {/if}
+            {if condition="$vo.STATUS eq 1"}
+            <a href="#" value="停止" onclick=ask_box(this,"确定要停止吗？","/index/material/open_close","close",2,"{$vo.STATUS}","{$vo.AUDIT_STATUS}") class="layui-bg-red td-a"><i class="layui-icon layui-icon-pause" style="font-size: 16px; color: #fff;"></i>停止</a>
+            {elseif condition="$vo.STATUS eq -2"}
+            <a href="#" value="启动"  onclick=ask_box(this,"确定要启动吗？","/index/material/open_close","open",2,"{$vo.STATUS}","{$vo.AUDIT_STATUS}") class="layui-bg-green td-a"><i class="layui-icon layui-icon-play" style="font-size: 16px; color: #fff;"></i>启动</a>
+            {/if}
+            <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>
+        </td>
+    </tr>
+    {/volist}
+    </tbody>
+</table>
+<script src="/static/js/batch.js"></script>
+<script>
+
+    /**
+     * 预览
+     */
+    function preview(obj,path,material_type){
+        layui.use(['layer'], function(){
+            var layer=layui.layer;
+            $.post("/index/material/preview",{path:path,material_type:material_type},function(res){
+                layer.open({type:1,title:'预览',area:'300px',offset:'250px',content:res});
+            });
+        })
+    }
+
+    function del(obj,url) {
+        $(obj).parents('tr').addClass("new");
+        var id=$(obj).parents('tr').find('td input').eq(0).val();
+
+        layui.use(['form', 'layer'], function () {
+            var form = layui.form;
+            var layer = layui.layer;
+            layer.confirm('确定要删除吗？', function (index) {
+                $.ajax({
+                    type: "POST",
+                    dataType: "json",
+                    url: url,
+                    data: {arr:id},
+                    success: function (res) {
+                        let {status, data, detail} = res;
+                        if(status==1){
+                            layer.msg(detail,{icon:6,time:1000},function () {
+                                $(".new").remove();
+                            });
+                        }else{
+                            layer.msg(detail,{icon:5,time:1000});
+                            $('tr').removeClass("new");
+                            return;
+                        }
+                    }
+                })
+            })
+        });
+    }
+
+    function ask_box(obj,msg,url,tag,code,run_status,audit_status) {
+        $(obj).parents('tr').addClass("new");
+        var id=$(obj).parents('tr').find('td input').eq(0).val();
+
+        layui.use(['form', 'layer'], function () {
+            var form = layui.form;
+            var layer = layui.layer;
+            layer.confirm(msg, function (index) {
+                $.ajax({
+                    type: "POST",
+                    dataType: "json",
+                    url: url,
+                    data: {arr:id,tag:tag,code:code},
+                    success: function (res) {
+                        let{status,data,detail}=res;
+                        if(status==1){
+                            layer.msg(detail, {icon:6,time: 1000}, function () {
+                                if(tag=='open'){
+                                    if(code==1){
+                                        if(run_status==1){
+                                            var str=' <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,1,1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a> <a href="#" value="停止" onclick=ask_box(this,"确定要停止吗？","/index/material/open_close","close",2,1,1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-pause" style="font-size: 16px; color: #fff;"></i>停止</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }else{
+                                            var str=' <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,-2,1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a> <a href="#" value="启动"  onclick=ask_box(this,"确定要启动吗？","/index/material/open_close","open",2,-2,1) class="layui-bg-green td-a"><i class="layui-icon layui-icon-play" style="font-size: 16px; color: #fff;"></i>启动</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }
+                                        $(".new").find('td').eq(6).text('通过');
+
+                                    }else{
+                                        if(audit_status==0){
+                                            var str=' <a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,1,0) class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a> <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,1,0) class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a> <a href="#" value="停止" onclick=ask_box(this,"确定要停止吗？","/index/material/open_close","close",2,1,0) class="layui-bg-red td-a"><i class="layui-icon layui-icon-pause" style="font-size: 16px; color: #fff;"></i>停止</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }else if(audit_status==1){
+                                            var str=' <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,1,1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a> <a href="#" value="停止" onclick=ask_box(this,"确定要停止吗？","/index/material/open_close","close",2,1,1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-pause" style="font-size: 16px; color: #fff;"></i>停止</a> <a href="#" value="删除" onclick=del(this,"/index/material/del")  class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }else if(audit_status==-1){
+                                            var str=' <a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,1,-1) class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a>  <a href="#" value="停止" onclick=ask_box(this,"确定要停止吗？","/index/material/open_close","close",2,1,-1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-pause" style="font-size: 16px; color: #fff;"></i>停止</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }
+                                        $(".new").find('td').eq(4).text('启动');
+                                    }
+
+                                }else if(tag=='close'){
+                                    if(code==1){
+                                        if(run_status==1){
+                                            var str='<a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,1,-1) class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a>  <a href="#" value="停止" onclick=ask_box(this,"确定要停止吗？","/index/material/open_close","close",2,1,-1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-pause" style="font-size: 16px; color: #fff;"></i>停止</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }else{
+                                            var str='<a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,-2,-1) class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a>  <a href="#" value="启动"  onclick=ask_box(this,"确定要启动吗？","/index/material/open_close","open",2,-2,-1) class="layui-bg-green td-a"><i class="layui-icon layui-icon-play" style="font-size: 16px; color: #fff;"></i>启动</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }
+                                        $(".new").find('td').eq(6).text('拒绝');
+                                    }else{
+                                        if(audit_status==0){
+                                            var str='<a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,-2,0) class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a>  <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,-2,0) class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a>  <a href="#" value="启动"  onclick=ask_box(this,"确定要启动吗？","/index/material/open_close","open",2,-2,0) class="layui-bg-green td-a"><i class="layui-icon layui-icon-play" style="font-size: 16px; color: #fff;"></i>启动</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }else if(audit_status==1){
+                                            var str=' <a href="#" value="拒绝" onclick=ask_box(this,"确定要拒绝吗？","/index/material/open_close","close",1,-2,1) class="layui-bg-red td-a"><i class="layui-icon layui-icon-face-cry" style="font-size: 16px; color: #fff;"></i>拒绝</a> <a href="#" value="启动"  onclick=ask_box(this,"确定要启动吗？","/index/material/open_close","open",2,-2,1) class="layui-bg-green td-a"><i class="layui-icon layui-icon-play" style="font-size: 16px; color: #fff;"></i>启动</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }else if(audit_status==-1){
+                                            var str='<a href="#" value="通过" onclick=ask_box(this,"确定要通过吗？","/index/material/open_close","open",1,-2,-1) class="layui-bg-green td-a" ><i class="layui-icon layui-icon-face-smile" style="font-size: 16px; color: #fff;"></i>通过</a> <a href="#" value="启动"  onclick=ask_box(this,"确定要启动吗？","/index/material/open_close","open",2,-2,-1) class="layui-bg-green td-a"><i class="layui-icon layui-icon-play" style="font-size: 16px; color: #fff;"></i>启动</a> <a href="#" value="删除" onclick=del(this,"/index/material/del") class="layui-bg-black td-a"><i class="layui-icon layui-icon-delete" style="font-size: 16px; color: #fff;"></i>删除</a>';
+                                        }
+                                        $(".new").find('td').eq(4).text('停止');
+                                    }
+
+                                }
+                                $(".new").find('td').eq(8).html(str);
+                                $('tr').removeClass("new");
+                            });
+                        }else{
+                            layer.msg(detail,{icon:5,time:1000});return;
+                        }
+                    }
+                });
+            });
+        });
+    }
+
+    $(function(){
+        $('tr').each(function(){
+            var td = $(this).find('td');
+            var text= td.eq(3);
+            text.css('color','#FF5722');
+        });
+    });
+
+
+    /**
+     * 监听下拉框
+     */
+    layui.use(['form','layer','laypage'], function(){
+        var form = layui.form;
+        var layer = layui.layer;
+        var laypage = layui.laypage;
+        form.on('select(status)', function(data){
+            var val=data.value;
+            if(arr.length < 1){
+                layer.msg('请选择要操作的数据',{time:1200},function () {
+                    $("#select").empty();
+                    var str='<option value="">批量操作</option><option value="1">启动</option><option value="2">停止</option><option value="3">通过</option><option value="4">拒绝</option><option value="5">删除</option>';
+                    $("#select").append(str);
+                    form.render("select");
+                });
+            }else{
+                if(val==1) {
+                    var msg = '确定要启动所选择的数据吗？';
+                    var url = $('#open').data('url');
+                    var tag = 'open';
+                    var code =2;
+                }else if(val==2){
+                    var msg = '确定要停止所选择的数据吗？';
+                    var url = $('#close').data('url');
+                    var tag = 'close';
+                    var code =2;
+                }else if(val==3){
+                    var msg = '确定要通过所选择的数据吗？';
+                    var url = $('#open').data('url');
+                    var tag = 'open';
+                    var code =1;
+                }else if(val==4){
+                    var msg = '确定要拒绝所选择的数据吗？';
+                    var url = $('#close').data('url');
+                    var tag = 'close';
+                    var code =1;
+                }else if(val==5){
+                    var msg = '确定删除绝所选择的数据吗？';
+                    var url = $('#del_list').data('url');
+                }
+
+                var data={arr:arr.join(','),tag:tag,code:code};
+
+                var page="{$page}";
+                layer.confirm(msg,function (index) {
+                    $.ajax({
+                        type: "POST",
+                        dataType: "json",
+                        url:url,
+                        data:data,
+                        success: function (res) {
+                            let{status,data,detail}=res;
+                            if(status==1){
+                                layer.msg(detail,{icon:6,time:1000},function (){
+                                    if(val==5){
+                                        $(".new").remove();
+                                        if(! $("tbody tr").html()){
+                                            window.location.reload();
+                                        }
+                                    }else{
+                                        var pageObj = $('#pageDiv');
+                                        $.turn_page(pageObj.data('url')+'?&page='+page+'&line='+pageObj.data('limit'), pageObj.data('content') , pageObj.data('form'));
+                                    }
+                                    $('tr').removeClass("new");
+                                    $("#select").empty();
+                                    var str='<option value="">批量操作</option><option value="1">启动</option><option value="2">停止</option><option value="3">通过</option><option value="4">拒绝</option><option value="5">删除</option>';
+                                    $("#select").append(str);
+                                    form.render("select");
+                                });
+                            }else{
+                                layer.msg(detail,{icon:5,time:1000});return;
+                            }
+                        }
+                    });
+                });
+
+            }
+        });
+    });
+
+
+</script>
+{include file="basePage"/}
